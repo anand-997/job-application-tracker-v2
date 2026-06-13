@@ -28,6 +28,8 @@ JD + résumé text extraction, analytics, English + हिंदी, dark/light 
 | 🎉 | **Confetti** on → Accepted |
 | 🌐 | **English + हिंदी** i18n for every visible string · **Dark / Light** theme |
 | 💾 | **localStorage** persistence + **JSON import/export** + **CSV export** |
+| 🧪 | **One-click sample data** — explore a pre-filled board from onboarding, then **Clear sample data** in a single click |
+| ℹ️ | **Guest-mode footer** — explains local-only storage + quick **Export / Import JSON** to back up or move data between devices |
 | ⌨️ | **Keyboard shortcuts** (Ctrl/⌘+K, N, 1–9, Esc, ?) · WCAG-minded focus rings & ARIA labels |
 
 ---
