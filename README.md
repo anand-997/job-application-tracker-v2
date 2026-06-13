@@ -5,7 +5,9 @@ JD + résumé text extraction, analytics, English + हिंदी, dark/light 
 
 > **Tailor → Apply → Track → Win** · Built to the PRD v3.1 spec.
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![No AI](https://img.shields.io/badge/AI-none-success) ![Deploy](https://img.shields.io/badge/Vercel-ready-black)
+### 🔴 Live demo → **https://job-application-tracker-v2.vercel.app**
+
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![No AI](https://img.shields.io/badge/AI-none-success) ![Deployed](https://img.shields.io/badge/Vercel-live-success)
 
 ---
 
