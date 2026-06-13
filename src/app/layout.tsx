@@ -28,7 +28,7 @@ const hindi = Noto_Sans_Devanagari({
 });
 
 export const metadata: Metadata = {
-  title: 'JobTracker AI — Your Career Command Center',
+  title: 'JobTracker — Your Career Command Center',
   description: 'Track every job application from wishlist to offer. 12-stage Kanban, analytics, JD + resume matching. Tailor → Apply → Track → Win.',
 };
 

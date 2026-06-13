@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "JobTracker AI",
+    "name": "JobTracker",
     "tagline": "Your Career Command Center",
     "motto": "Tailor → Apply → Track → Win"
   },
@@ -145,7 +145,7 @@
     "copyAll": "Copy all",
     "documents": "Documents",
     "matchTitle": "Resume ↔ JD keyword match",
-    "matchHint": "How many JD keywords appear in your resume (client-side, no AI).",
+    "matchHint": "How many JD keywords appear in your resume — computed in your browser.",
     "matched": "Matched",
     "missing": "Missing from resume"
   },
@@ -286,11 +286,11 @@
     "clearConfirm": "Type DELETE to confirm",
     "shortcuts": "Keyboard Shortcuts",
     "about": "About",
-    "aboutText": "Made with ❤️ for the competition · TheTestingAcademy",
+    "aboutText": "Made with ❤️.",
     "version": "Version"
   },
   "onboarding": {
-    "welcome": "Welcome to JobTracker AI",
+    "welcome": "Welcome to JobTracker",
     "subtitle": "Track every application from wishlist to offer. Let's set you up.",
     "iAmA": "I am a…",
     "student": "Student / Fresh Graduate",
@@ -299,7 +299,13 @@
     "professionalDesc": "Quality over quantity — salary & offer deadlines.",
     "yourName": "Your name (optional)",
     "getStarted": "Get Started",
-    "exploreSample": "Explore with sample data"
+    "exploreSample": "Explore with sample data",
+    "sampleHint": "Just looking? You can clear the sample data anytime — one click from the banner, or Settings → Clear all data."
+  },
+  "sample": {
+    "notice": "You're exploring with sample data.",
+    "clear": "Clear sample data",
+    "keep": "Keep it"
   },
   "importExport": {
     "title": "Import / Export",

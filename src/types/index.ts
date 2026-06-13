@@ -1,5 +1,5 @@
 // ───────────────────────────────────────────────────────────
-// JobTracker AI — Core Data Model (PRD §3, exact field names)
+// JobTracker — Core Data Model (PRD §3, exact field names)
 // ───────────────────────────────────────────────────────────
 
 export type SourceValue =
@@ -127,6 +127,7 @@ export interface UserPrefs {
   name?: string;
   noticePeriodDays?: number;
   onboarded?: boolean;
+  sampleLoaded?: boolean;
 }
 
 export interface FilterState {

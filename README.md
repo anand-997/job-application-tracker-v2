@@ -1,13 +1,13 @@
-# 🎯 JobTracker AI — Your Career Command Center
+# 🎯 JobTracker — Your Career Command Center
 
 A clean, fast, beautiful **job application tracker**. 12-stage Kanban pipeline, drag-and-drop,
-JD + résumé text extraction, analytics, English + हिंदी, dark/light — **100% client-side, zero AI, zero backend.**
+JD + résumé text extraction, analytics, English + हिंदी, dark/light — **100% client-side, no backend, no LLM calls.**
 
 > **Tailor → Apply → Track → Win** · Built to the PRD v3.1 spec.
 
 ### 🔴 Live demo → **https://job-application-tracker-v2.vercel.app**
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![No AI](https://img.shields.io/badge/AI-none-success) ![Deployed](https://img.shields.io/badge/Vercel-live-success)
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![No LLM](https://img.shields.io/badge/LLM-none-success) ![Deployed](https://img.shields.io/badge/Vercel-live-success)
 
 ---
 
@@ -19,7 +19,7 @@ JD + résumé text extraction, analytics, English + हिंदी, dark/light 
 | ↩️ | **Undo toast** on every move ("Moved to Interview. Undo?") |
 | 📝 | **3-step Add/Edit wizard** — basic info, details + documents, contacts & notes |
 | 📄 | **JD + Résumé per card** — paste OR upload **PDF/DOCX**; text extracted in-browser (`pdfjs-dist` + `mammoth`), **never stores binary** |
-| 🎯 | **Résumé ↔ JD keyword match %** — client-side, no AI *(bonus feature)* |
+| 🎯 | **Résumé ↔ JD keyword match %** — client-side, no LLM *(bonus feature)* |
 | 📊 | **Analytics** — status donut, timeline, source bar, work-mode/job-type pies, salary histogram, **GitHub-style activity heatmap**, **application funnel** |
 | 🔍 | **Search** (300 ms debounce, searches inside JD + résumé text) + **filters** + **saved presets** + **sort** |
 | 📋 | **Table view** — sortable columns, inline status edit, bulk actions, pagination |
@@ -94,8 +94,8 @@ src/
   so they're left as a documented add-on (`.env.example`) — the core tracker deploys with **zero config**.
 - **i18n** uses a lightweight custom provider (full EN/HI coverage) instead of next-intl routing, for a robust single-build deploy.
 - **UI** is hand-built on Tailwind (same UX as the shadcn component list) to avoid CLI/network setup.
-- **No AI anywhere** — the keyword-match feature is pure set-overlap math.
+- **No LLM calls anywhere** — the keyword-match feature is pure set-overlap math.
 
 ---
 
-*Made with ❤️ for the competition · TheTestingAcademy*
+*Made with ❤️*

@@ -54,7 +54,7 @@ export function mergeApplications(
   return merged;
 }
 
-// CSV export (bonus, no-AI) — flat columns for spreadsheets.
+// CSV export (bonus) — flat columns for spreadsheets.
 export function toCSV(apps: JobApplication[]): string {
   const headers = [
     'Company', 'Role', 'Status', 'Source', 'Work Mode', 'Job Type',

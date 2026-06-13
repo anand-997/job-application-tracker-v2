@@ -20,7 +20,7 @@ VERCEL_TOKEN=<token> npx vercel@latest --prod --yes --scope <team>
 
 ## Big picture
 
-A **single-page, client-only** Next.js 14 (App Router) job-application tracker. **No backend, no API routes, no AI, no required env vars** — all data lives in `localStorage` under the key `jobtracker_v3`. Deploys to Vercel as static output + the App Router shell.
+A **single-page, client-only** Next.js 14 (App Router) job-application tracker. **No backend, no API routes, no LLM calls, no required env vars** — all data lives in `localStorage` under the key `jobtracker_v3`. Deploys to Vercel as static output + the App Router shell.
 
 `src/app/page.tsx` is the *entire* app: a `'use client'` shell (`AppShell`) wrapped in `Providers`. It owns view/search/sort/filter/modal UI state and composes every feature. There are no other routes.
 
@@ -42,10 +42,10 @@ CSS variables in `src/app/globals.css` under `.dark`/`.light` (toggled on `<html
 
 ### Key libs (`src/lib/`)
 - `extract-text.ts` — **browser-only** PDF/DOCX → plain text (`pdfjs-dist` worker loaded from a CDN, `mammoth`). Stores extracted **text only, never binary**. 5 MB cap, `.pdf`/`.docx` only.
-- `analytics.ts` — pure aggregation feeding `AnalyticsDashboard` (Recharts). `filtering.ts` — search/filter/sort applied in `page.tsx` via `useMemo`. `keyword-match.ts` — the no-AI résumé↔JD overlap score. `constants.ts` — status/source/priority configs + `STORAGE_KEY`.
+- `analytics.ts` — pure aggregation feeding `AnalyticsDashboard` (Recharts). `filtering.ts` — search/filter/sort applied in `page.tsx` via `useMemo`. `keyword-match.ts` — the résumé↔JD overlap score (set math, no models). `constants.ts` — status/source/priority configs + `STORAGE_KEY`.
 - `AnalyticsDashboard` and `TableView` are `next/dynamic` with `ssr:false` (Recharts + bundle size).
 
 ## Conventions / constraints
 - Keep the localStorage key `jobtracker_v3` and the 12 statuses in `STATUS_ORDER` stable — both are part of the data contract and the product spec.
-- Zero AI by design; the "match %" is plain set math, not an LLM.
+- No LLM/ML calls by design; the "match %" is plain set math.
 - `PRD.md` is the product spec; `README.md` documents intentional deviations from it (guest-mode-only, custom i18n, hand-built Tailwind UI instead of shadcn).

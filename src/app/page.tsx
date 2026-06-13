@@ -23,6 +23,7 @@ import { ImportExportModal } from '@/components/modals/ImportExportModal';
 import { TextViewerModal } from '@/components/modals/TextViewerModal';
 import { FilterPanel } from '@/components/filters/FilterPanel';
 import { FilterChips } from '@/components/filters/FilterChips';
+import { Button } from '@/components/ui/primitives';
 
 const AnalyticsDashboard = dynamic(
   () => import('@/components/views/AnalyticsDashboard').then((m) => m.AnalyticsDashboard),
@@ -42,7 +43,7 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { state, hydrated, deleteApplication, changeStatus } = useApp();
+  const { state, hydrated, deleteApplication, changeStatus, clearAll, setPrefs } = useApp();
   const { t } = useT();
 
   const [view, setView] = useState<ViewMode>('kanban');
@@ -106,6 +107,17 @@ function AppShell() {
         <div className="flex items-center gap-2 border-b border-border bg-accent/5 px-4 py-1.5 text-xs text-text-secondary">
           <span>💾 {t('header.guestMode')}</span>
           <button onClick={() => setBannerHidden(true)} aria-label="Dismiss" className="ml-auto text-text-muted hover:text-text-primary"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
+
+      {/* Sample-data banner — one-click exit from "Explore with sample data" */}
+      {state.userPrefs.sampleLoaded && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-accent/10 px-4 py-2 text-xs text-text-secondary">
+          <span>🧪 {t('sample.notice')}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="primary" onClick={clearAll}>{t('sample.clear')}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setPrefs({ sampleLoaded: false })}>{t('sample.keep')}</Button>
+          </div>
         </div>
       )}
 

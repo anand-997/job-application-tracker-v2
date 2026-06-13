@@ -1,6 +1,6 @@
-// ── Extra feature (no AI): Resume ↔ JD keyword match % ────────
-// Pure client-side set overlap of meaningful tokens. Marked clearly
-// as an addition beyond the core PRD spec.
+// ── Extra feature: Resume ↔ JD keyword match % ────────────────
+// Pure client-side set overlap of meaningful tokens — no models, no
+// network. Marked clearly as an addition beyond the core PRD spec.
 
 const STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'you', 'your', 'our', 'are', 'will', 'have',

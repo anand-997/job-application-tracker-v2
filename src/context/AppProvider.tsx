@@ -123,9 +123,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── Applications CRUD ──
   const addApplication = useCallback((app: JobApplication) => {
-    setApps((apps) => [app, ...apps]);
+    // Adding a real application means the user has "adopted" the board — drop the sample flag.
+    setState((prev) => ({
+      ...prev,
+      applications: [app, ...prev.applications],
+      userPrefs: prev.userPrefs.sampleLoaded ? { ...prev.userPrefs, sampleLoaded: false } : prev.userPrefs,
+    }));
     fireConfettiIfAccepted(app.id, app.status);
-  }, [setApps, fireConfettiIfAccepted]);
+  }, [fireConfettiIfAccepted]);
 
   const updateApplication = useCallback((app: JobApplication) => {
     const updated = { ...app, lastActivityDate: nowISO(), updatedAt: nowISO() };
@@ -241,10 +246,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => {
         const applications = mode === 'replace' ? apps : mergeApplications(prev.applications, apps);
         count = mode === 'replace' ? apps.length : applications.length - prev.applications.length;
+        // Replacing with the user's own data clears the sample flag.
+        const sampleLoaded = mode === 'replace' ? false : prev.userPrefs.sampleLoaded;
         return {
           ...prev,
           applications,
-          userPrefs: prefs ? { ...prev.userPrefs, ...prefs, onboarded: true } : prev.userPrefs,
+          userPrefs: prefs
+            ? { ...prev.userPrefs, ...prefs, onboarded: true, sampleLoaded }
+            : { ...prev.userPrefs, sampleLoaded },
         };
       });
       return count;
@@ -256,13 +265,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       applications: buildSampleApplications(),
-      userPrefs: { ...prev.userPrefs, onboarded: true },
+      userPrefs: { ...prev.userPrefs, onboarded: true, sampleLoaded: true },
     }));
   }, []);
 
   const clearAll = useCallback(() => {
     clearState();
-    setState((prev) => ({ ...emptyState(), userPrefs: { ...prev.userPrefs } }));
+    setState((prev) => ({ ...emptyState(), userPrefs: { ...prev.userPrefs, sampleLoaded: false } }));
     prevAcceptedRef.current = new Set();
   }, []);
 
@@ -283,7 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (n.read || firedRef.current.has(n.id)) continue;
       if (n.type === 'offerDeadline' || n.type === 'followUpOverdue' || n.type === 'interviewTomorrow') {
         firedRef.current.add(n.id);
-        fireBrowserNotification('JobTracker AI', notifText(n));
+        fireBrowserNotification('JobTracker', notifText(n));
       }
     }
   }, [notifications, hydrated]);

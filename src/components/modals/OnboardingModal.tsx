@@ -49,6 +49,7 @@ export function OnboardingModal({ open }: { open: boolean }) {
           <Button variant="primary" className="flex-1" onClick={() => finish(false)}>{t('onboarding.getStarted')}</Button>
           <Button variant="secondary" className="flex-1" onClick={() => finish(true)}>{t('onboarding.exploreSample')}</Button>
         </div>
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-text-muted">{t('onboarding.sampleHint')}</p>
       </div>
     </Modal>
   );
