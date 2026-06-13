@@ -19,6 +19,12 @@
     "toggleTheme": "Toggle theme",
     "loadSample": "Load sample data"
   },
+  "footer": {
+    "guestTitle": "Guest Mode — local only",
+    "guestInfo": "Your applications are stored in this browser. There's no account or cloud sync (yet) — use Export / Import JSON to back them up or move them to another device.",
+    "exportNow": "Export JSON",
+    "importNow": "Import JSON"
+  },
   "status": {
     "wishlist": "Wishlist",
     "applied": "Applied",

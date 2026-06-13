@@ -6,6 +6,8 @@ import { X } from 'lucide-react';
 import type { JobApplication, StatusValue, ViewMode, SortKey, FilterState } from '@/types';
 import { QUICK_STATUS_BY_NUMBER } from '@/lib/constants';
 import { searchApps, filterApps, sortApps, countActiveFilters } from '@/lib/filtering';
+import { downloadJSON } from '@/lib/utils';
+import { buildExport } from '@/lib/export-import';
 import { useApp } from '@/context/AppProvider';
 import { useT } from '@/i18n/I18nProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -135,6 +137,23 @@ function AppShell() {
           <AnalyticsDashboard apps={apps} />
         )}
       </main>
+
+      {/* Info footer under the tracker — explains Guest Mode + how to back up / move data */}
+      <footer className="hidden flex-wrap items-center gap-x-3 gap-y-1 border-t border-border surface px-4 py-2 text-[11px] text-text-muted sm:flex">
+        <span className="font-medium text-text-secondary">💾 {t('footer.guestTitle')}</span>
+        <span className="max-w-3xl">{t('footer.guestInfo')}</span>
+        <span className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => downloadJSON(buildExport(state), 'jobtracker-export.json')}
+            className="font-medium text-accent hover:underline"
+          >
+            {t('footer.exportNow')}
+          </button>
+          <button onClick={() => setImportOpen(true)} className="font-medium text-accent hover:underline">
+            {t('footer.importNow')}
+          </button>
+        </span>
+      </footer>
 
       <MobileNav view={view} setView={setView} onAddJob={() => openAdd()} onOpenSettings={() => setSettingsOpen(true)} />
 
