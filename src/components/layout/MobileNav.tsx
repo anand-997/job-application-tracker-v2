@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutGrid, BarChart3, Plus, Settings, Table2 } from 'lucide-react';
+import { LayoutGrid, BarChart3, Plus, Settings, Table2, CalendarDays } from 'lucide-react';
 import type { ViewMode } from '@/types';
 import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ export function MobileNav({
       <button onClick={onAddJob} aria-label={t('nav.addJob')} className="-mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-drag">
         <Plus className="h-6 w-6" />
       </button>
+      <Tab active={view === 'calendar'} onClick={() => setView('calendar')} icon={<CalendarDays className="h-5 w-5" />} label={t('nav.calendar')} />
       <Tab active={view === 'analytics'} onClick={() => setView('analytics')} icon={<BarChart3 className="h-5 w-5" />} label={t('nav.analytics')} />
       <Tab active={false} onClick={onOpenSettings} icon={<Settings className="h-5 w-5" />} label={t('nav.settings')} />
     </nav>

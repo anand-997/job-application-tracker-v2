@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, SlidersHorizontal, Moon, Sun, Settings, Download, LayoutGrid, Table2, BarChart3, Target } from 'lucide-react';
+import { Plus, SlidersHorizontal, Moon, Sun, Settings, Download, LayoutGrid, Table2, BarChart3, CalendarDays, Target } from 'lucide-react';
 import type { ViewMode, SortKey } from '@/types';
 import { useApp } from '@/context/AppProvider';
 import { useT } from '@/i18n/I18nProvider';
@@ -73,6 +73,7 @@ export function Header({
                 { value: 'kanban', label: <span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" /><span className="hidden lg:inline">{t('nav.board')}</span></span> },
                 { value: 'table', label: <span className="flex items-center gap-1"><Table2 className="h-3.5 w-3.5" /><span className="hidden lg:inline">{t('nav.table')}</span></span> },
                 { value: 'analytics', label: <span className="flex items-center gap-1"><BarChart3 className="h-3.5 w-3.5" /><span className="hidden lg:inline">{t('nav.analytics')}</span></span> },
+                { value: 'calendar', label: <span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /><span className="hidden lg:inline">{t('nav.calendar')}</span></span> },
               ]}
             />
           </div>

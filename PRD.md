@@ -1,6 +1,11 @@
 # 🏆 JobTracker AI — World's Best Job Application Tracker
-## PRD v3.1 — FINAL (No AI Features)
+## PRD v3.2 — FINAL (No AI Features)
 ### Clean • Fast • Beautiful • Competition-Ready → Vercel Deploy
+
+> **v3.2 addendum:** This PRD now folds in the **Calendar** feature (§5 · F12) and the
+> **linked disk-folder auto-backup** (§8). See **§16 — Implementation Notes & Changelog**
+> for what was actually built and where the shipped app intentionally deviates from the
+> original v3.1 stack (custom i18n + hand-built Tailwind UI, guest-mode only, no shadcn/next-intl).
 
 ---
 
@@ -16,7 +21,8 @@
 | **Personas** | Fresh Graduate + Experienced Professional |
 | **Language** | English + Hindi |
 | **Theme** | Dark / Light toggle |
-| **Data** | localStorage (guest) + optional Google/GitHub login + JSON export/import |
+| **Data** | localStorage (guest) + **linked disk-folder auto-backup** (File System Access API) + JSON export/import |
+| **Views** | Kanban · Table · Analytics · **Calendar (Month / Week)** |
 | **Documents** | 1 JD + 1 Resume per card — paste text OR upload PDF/DOCX (text extracted, stored in JSON) |
 | **AI** | ❌ None |
 
@@ -28,10 +34,10 @@
 2. User Personas
 3. Core Data Model (TypeScript)
 4. Application Status Pipeline (12 statuses)
-5. Features F1–F11
+5. Features F1–F12 (F12 = Calendar)
 6. UI/UX Specifications
 7. Kanban Board Spec
-8. Auth & Data Persistence
+8. Auth & Data Persistence (incl. linked disk-folder backup)
 9. i18n English + Hindi
 10. Performance & Accessibility
 11. File Structure
@@ -39,6 +45,7 @@
 13. Deployment Guide
 14. Competition Edge Features
 15. Claude Code Starter Prompt
+16. Implementation Notes & Changelog (v3.1 → v3.2)
 
 ---
 
@@ -206,6 +213,58 @@ interface InterviewRound {
   interviewer?: string;
   notes?: string;
   outcome?: 'passed' | 'failed' | 'pending' | 'cancelled';
+
+  // ── Calendar addon (v3.2) — all optional, backward compatible ──
+  scheduledTime?: string;        // "14:30" — 24h HH:mm
+  durationMinutes?: number;      // 30 | 45 | 60 | 90 | 120 — default 60
+  timezone?: string;             // e.g. "Asia/Kolkata"
+  meetLink?: string;             // Google Meet / Zoom / Teams URL
+  meetPlatform?: MeetPlatform;
+  location?: string;             // office address — shown when onsite / in_person
+  interviewerEmail?: string;
+  preparationNotes?: string;
+  reminderMinutes?: number;      // browser notification before event: 15 | 30 | 60 | 1440
+}
+
+type MeetPlatform =
+  | 'google_meet' | 'zoom' | 'teams' | 'phone' | 'in_person' | 'other';
+
+// ── Calendar Event (v3.2) — COMPUTED at render time from applications[].
+//    NEVER stored in AppState/localStorage. Persistence is implicit: the
+//    InterviewRound fields + application dates it derives from are part of
+//    applications[], which already saves to localStorage and the linked
+//    disk-folder backup (see §8). ──
+type CalendarEventType =
+  | 'interview_round' | 'follow_up' | 'offer_deadline'
+  | 'applied' | 'offer_received' | 'interview_scheduled';
+
+interface CalendarEvent {
+  id: string;                    // `${applicationId}_${type}_${roundId|kind}`
+  type: CalendarEventType;
+  title: string;
+  subtitle?: string;
+  color: string;                 // per-type hex (see F12 color table)
+  colorLabel: string;
+  date: string;                  // "YYYY-MM-DD"
+  time?: string;                 // "14:30" — undefined = all-day
+  endTime?: string;              // time + durationMinutes
+  durationMinutes?: number;
+  isAllDay: boolean;
+  isToday: boolean;
+  isPast: boolean;
+  isOverdue: boolean;
+  applicationId: string;
+  roundId?: string;
+  company: string;
+  role: string;
+  source: SourceValue;
+  meetLink?: string;
+  meetPlatform?: MeetPlatform;
+  location?: string;
+  interviewer?: string;
+  preparationNotes?: string;
+  reminderMinutes?: number;
+  clickAction: 'open_round_modal' | 'open_job_drawer';
 }
 
 // ── Status History ─────────────────────────────────────────
@@ -793,6 +852,100 @@ export async function extractFileText(file: File): Promise<string> {
 
 ---
 
+### F12 — CALENDAR (Month + Week)  *(v3.2)*
+
+A calendar surface that shows every job-related date and interview event. It is a
+**read-only derived view** — `generateCalendarEvents(applications)` computes events at
+render time. There is **no separate event store and no new localStorage key**; events are
+recomputed each render from `applications[]`, so they persist for free via localStorage and
+the linked disk-folder backup (§8). The expanded `InterviewRound` fields (time, meet link,
+etc.) are the only new persisted data and are all optional → no export-schema bump.
+
+> **Implementation note:** the app is a single-page, client-only shell, so Calendar ships as
+> a fourth **view** (`ViewMode = 'calendar'`), lazy-loaded like Analytics — *not* as a
+> `/calendar` route. It is built with the existing hand-rolled UI primitives + custom i18n
+> (no shadcn, no `next-intl`) and plain CSS-Grid (no calendar library). `date-fns` is used
+> for date math.
+
+#### Event types & colors
+
+| `type` | Source field | Timing | Color | Click → |
+|--------|--------------|--------|-------|---------|
+| `interview_round` | `InterviewRound.scheduledDate` (+`scheduledTime`) | timed | Purple `#7F77DD` | Job drawer (rounds editor) |
+| `follow_up` | `followUpDate` | all-day | Amber `#EF9F27` | Job drawer |
+| `offer_deadline` | `responseDeadline` | all-day | Red `#E24B4A` | Job drawer |
+| `applied` | `appliedDate` | all-day | Blue `#378ADD` | Job drawer |
+| `offer_received` | `offerDate` | all-day | Green `#639922` | Job drawer |
+| `interview_scheduled` | `interviewDate` | all-day | Pink `#D4537E` | Job drawer |
+
+Overdue events (past `follow_up` / `offer_deadline`) keep their color but add a red ⚠ + strikethrough.
+
+> The requirement's `open_round_modal` action maps to opening the **Job Detail drawer**
+> (which hosts `InterviewRoundsManager`); there is no standalone round modal in this app.
+
+#### Updated Interview Round form (F7 extension)
+
+The round editor in the Job Detail drawer gains, alongside the existing type / outcome / date /
+interviewer fields:
+
+| Field | Control | Default | Rule |
+|-------|---------|---------|------|
+| `scheduledTime` | time (HH:mm) | — | optional |
+| `durationMinutes` | select | 60 | 30 / 45 / 60 / 90 / 120 |
+| `interviewerEmail` | email | — | optional |
+| `meetPlatform` | select | google_meet | google_meet / zoom / teams / phone / in_person / other |
+| `meetLink` | url | — | hidden when platform = phone / in_person |
+| `location` | text | — | shown when type = onsite **or** platform = in_person |
+| `reminderMinutes` | select | 30 | none / 15 / 30 / 60 / 1440 |
+| `preparationNotes` | textarea | — | max 500 chars |
+
+#### Page layout
+
+```
+[← June 2026 →] [Today]            [Month | Week]  [Filters ▾]
+[● legend: Interview · Follow-up · Offer · Applied · …]
+┌───────────────────────────────────┬──────────────────────┐
+│ MONTH or WEEK grid (flex-1)        │ UPCOMING rail (≥1024) │
+└───────────────────────────────────┴──────────────────────┘
+```
+
+- **Month view** — 7-col CSS Grid; today = filled accent circle + cell ring; up to 3 event
+  pills per cell + "+N more" popover. Rows fit the viewport when there's room and **scroll**
+  when it's short (no clipped weeks).
+- **Week view** — 60px time gutter, 8:00–20:00 in 30-min rows; all-day strip on top; timed
+  blocks sized by duration; a **live red current-time line** in today's column (updates each minute).
+- **Event popover** — title, date/time range, interviewer, meet link (open ↗ + copy), prep
+  notes, and Edit-round / Open-job actions.
+- **Upcoming rail** — events grouped Today / Tomorrow / This Week / Next Week / Later
+  (desktop only, hidden < 1024px).
+- **Filters** — toggle event types, filter by source, and All vs Active-only applications.
+- **Reminders** — `useCalendarReminders` schedules `setTimeout` browser `Notification`s for
+  timed rounds with `reminderMinutes` firing within 24h; permission requested on first
+  Calendar mount. Pure browser API, no backend.
+
+#### New files
+
+```
+src/lib/calendar-events.ts        # generateCalendarEvents() — pure
+src/lib/calendar-utils.ts         # grid math, grouping, time geometry
+src/hooks/useCalendarReminders.ts # browser-notification scheduling
+src/components/views/CalendarView.tsx           # root view (lazy-loaded)
+src/components/calendar/CalendarHeader.tsx
+src/components/calendar/CalendarFilters.tsx
+src/components/calendar/CalendarLegend.tsx
+src/components/calendar/MonthView.tsx
+src/components/calendar/WeekView.tsx
+src/components/calendar/EventPill.tsx
+src/components/calendar/EventPopover.tsx
+src/components/calendar/UpcomingSidebar.tsx
+```
+
+Edited: `types/index.ts` (round fields + `MeetPlatform` + `CalendarEvent` + `ViewMode`),
+`InterviewRoundsManager.tsx`, `Header.tsx` + `MobileNav.tsx` (Calendar tab), `page.tsx`
+(view wiring), `messages/{en,hi}.json` (`nav.calendar`, `calendar.*`, `round.*`, `eventType.*`).
+
+---
+
 ## 6. UI/UX SPECIFICATIONS
 
 ### Design Language
@@ -929,7 +1082,31 @@ Dialog | Sheet | Badge | Progress | Tabs | Popover | Command | Calendar | Toast 
 - Persistent guest banner: "💾 Guest Mode — Sign in to sync, or Export JSON to backup"
 - JSON export always available (one-click in header + settings)
 
+### Linked Disk-Folder Auto-Backup (v3.2)
+
+The shipped app replaces the planned cloud login with a **client-only, no-account** backup
+that writes directly to a file on the user's device via the **File System Access API**.
+
+- **Onboarding step 2** (after persona): "Choose a data folder" (suggested under Documents) or
+  "Skip — use this browser only".
+- On pick, the app reads `jobtracker-backup.json` in that folder if present (**loads** it),
+  otherwise **creates** it from current state. Every change then **auto-syncs** (debounced) to
+  that file.
+- The directory **handle is remembered in IndexedDB** (handles aren't JSON-serializable, so they
+  are never put in the `jobtracker_v3` localStorage blob). localStorage remains the always-on
+  working cache and source of truth for instant render.
+- **On return:** the board renders instantly from localStorage; a one-click *"Resume saving to
+  &lt;folder&gt;"* banner re-grants folder permission (a browser-mandated gesture — silent
+  re-open is not possible on the web), then reloads the file and resumes auto-sync. If the
+  folder/file is gone, the user is treated as new.
+- **Browser support:** Chromium only (Chrome / Edge / Opera). Firefox / Safari automatically
+  fall back to manual JSON Export / Import. Settings → Data exposes Choose / Change folder,
+  Sync now, Load from file, Resume, and Unlink.
+
 ### Auth Mode (Google + GitHub via NextAuth.js)
+
+> **Not shipped.** v3.2 is guest-mode only; cloud login + Vercel KV were dropped in favour of
+> the linked disk-folder backup above. The original spec is retained below for reference.
 - On first login: prompt "Migrate your [N] guest applications to your account?"
 - Data: Vercel KV (Redis) — key `user:{userId}:data`
 - Cross-device sync
@@ -1306,6 +1483,8 @@ npx vercel --prod
 | 🏆 15 | **Undo Drag Toast** | "Moved to Interview. Undo?" — prevents mistakes |
 | 🏆 16 | **JD + Resume per card** | Paste or upload PDF/DOCX — text stored in JSON, works offline |
 | 🏆 17 | **Document badges on card** | 📄 JD ✅ · 📄 CV ✅ — at-a-glance completeness |
+| 🏆 18 | **Calendar (Month + Week)** | Live current-time line, timed interview blocks, upcoming rail — derived, zero extra storage |
+| 🏆 19 | **Linked disk-folder auto-backup** | Your data saved to a real `.json` on your device, no account — privacy-first, survives browser clears |
 
 ---
 
@@ -1421,5 +1600,39 @@ JD + RESUME STORAGE RULES (Section F11):
 
 ---
 
-*PRD v3.1 — No AI Edition — Competition Ready*
+## 16. IMPLEMENTATION NOTES & CHANGELOG (v3.1 → v3.2)
+
+The shipped app realises the v3.1 spec with a few deliberate, documented deviations (the
+README is the canonical list). This section records what was actually built so the PRD and
+code stay in sync.
+
+### Intentional deviations from the v3.1 stack
+
+| Area | Spec said | Shipped | Why |
+|------|-----------|---------|-----|
+| i18n | `next-intl` | Custom `useT()` + `messages/{en,hi}.json` (dotted lookup + `{var}`) | Zero deps, full control, no route-based locale needed for a single-page app |
+| UI kit | shadcn/ui | Hand-built Tailwind primitives (`components/ui/*`) | Smaller bundle, bespoke look, no generator coupling |
+| Routing | `(dashboard)` routes (`/analytics`, `/settings`, `/calendar`) | Single-page client shell; views switch via `ViewMode` state in `page.tsx` | App is fully client-side; no server routes/RSC needed |
+| Auth / cloud | NextAuth (Google/GitHub) + Vercel KV sync | **Dropped** — guest-mode only | Privacy-first, no secrets/backend; replaced by the linked disk-folder backup |
+| Data backup | JSON export/import only | **+ Linked disk-folder auto-backup** (File System Access API, IndexedDB handle) | Direct on-device persistence without an account (see §8) |
+
+### v3.2 — Additions
+
+- **Calendar view (F12):** Month + Week, derived events, expanded interview-round fields,
+  upcoming rail, filters, event popovers, browser reminders, live current-time line.
+- **Linked disk-folder auto-backup (§8):** onboarding folder pick → auto-sync to
+  `jobtracker-backup.json`, IndexedDB-remembered handle, one-click resume, Chromium-only with
+  graceful Export/Import fallback.
+- **Onboarding** is now a 2-step wizard (persona → data-folder choice).
+- **Guest footer** reworded to state browser-support split; no duplicate backup messaging.
+
+### Data-contract guarantees (unchanged)
+
+- localStorage key stays `jobtracker_v3`; export `version` stays `3.0`.
+- All new `InterviewRound` fields are optional → older exports import cleanly.
+- `CalendarEvent` is computed, never stored.
+
+---
+
+*PRD v3.2 — No AI Edition — Competition Ready*
 *Tailor → Apply → Track → Win 🚀*

@@ -8,8 +8,77 @@
     "board": "Board",
     "table": "Table",
     "analytics": "Analytics",
+    "calendar": "Calendar",
     "settings": "Settings",
     "addJob": "Add Job"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This Week",
+    "nextWeek": "Next Week",
+    "later": "Later",
+    "month": "Month",
+    "week": "Week",
+    "allDay": "All day",
+    "upcoming": "Upcoming",
+    "filters": "Filters",
+    "showEventTypes": "Show event types",
+    "filterBySource": "Filter by source",
+    "showAllApps": "All applications",
+    "activeOnly": "Active only",
+    "reset": "Reset",
+    "moreEvents": "+{n} more",
+    "meetLink": "Meet link",
+    "copyLink": "Copy link",
+    "linkCopied": "Meet link copied",
+    "editRound": "Edit round",
+    "openJob": "Open job card",
+    "nothingScheduled": "Nothing further scheduled",
+    "showAll": "Show all",
+    "overdue": "Overdue"
+  },
+  "round": {
+    "scheduledTime": "Time",
+    "duration": "Duration",
+    "durationOptions": {
+      "30": "30 min",
+      "45": "45 min",
+      "60": "1 hour",
+      "90": "1.5 hours",
+      "120": "2 hours"
+    },
+    "interviewerEmail": "Interviewer email",
+    "platform": "Platform",
+    "platformOptions": {
+      "google_meet": "Google Meet",
+      "zoom": "Zoom",
+      "teams": "Microsoft Teams",
+      "phone": "Phone",
+      "in_person": "In person",
+      "other": "Other"
+    },
+    "meetLink": "Meet link",
+    "location": "Location",
+    "reminder": "Reminder",
+    "reminderOptions": {
+      "none": "No reminder",
+      "15": "15 min before",
+      "30": "30 min before",
+      "60": "1 hour before",
+      "1440": "1 day before"
+    },
+    "preparationNotes": "Prep notes",
+    "preparationNotesPlaceholder": "What to prepare for this specific round..."
+  },
+  "eventType": {
+    "interview_round": "Interview",
+    "follow_up": "Follow-up",
+    "offer_deadline": "Offer deadline",
+    "applied": "Applied",
+    "offer_received": "Offer received",
+    "interview_scheduled": "Interview scheduled"
   },
   "header": {
     "searchPlaceholder": "Search company, role, skills, JD, resume…",

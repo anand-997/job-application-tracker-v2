@@ -23,6 +23,7 @@ JD + résumé text extraction, analytics, English + हिंदी, dark/light 
 | 📊 | **Analytics** — status donut, timeline, source bar, work-mode/job-type pies, salary histogram, **GitHub-style activity heatmap**, **application funnel** |
 | 🔍 | **Search** (300 ms debounce, searches inside JD + résumé text) + **filters** + **saved presets** + **sort** |
 | 📋 | **Table view** — sortable columns, inline status edit, bulk actions, pagination |
+| 📅 | **Calendar** — Month + Week views of all dates & interview rounds, derived live from your data (no extra storage); timed interview blocks, **live current-time line**, upcoming rail, type/source filters, and browser reminders |
 | 🔔 | **Notifications** — follow-up overdue, offer deadlines, interview-tomorrow, auto-ghost; optional browser notifications |
 | 👻 | **Ghost detector** — auto-marks stale applications after N days (configurable) |
 | 🎉 | **Confetti** on → Accepted |

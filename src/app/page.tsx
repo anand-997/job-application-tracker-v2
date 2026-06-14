@@ -36,6 +36,10 @@ const TableView = dynamic(
   () => import('@/components/views/TableView').then((m) => m.TableView),
   { ssr: false, loading: () => <Loading /> },
 );
+const CalendarView = dynamic(
+  () => import('@/components/views/CalendarView').then((m) => m.CalendarView),
+  { ssr: false, loading: () => <Loading /> },
+);
 
 export default function Page() {
   return (
@@ -154,14 +158,16 @@ function AppShell() {
 
       {/* Main view */}
       <main className="relative flex-1 overflow-hidden pb-16 sm:pb-0">
-        {apps.length === 0 ? (
+        {view === 'analytics' ? (
+          <AnalyticsDashboard apps={apps} />
+        ) : view === 'calendar' ? (
+          <CalendarView apps={apps} onOpenJob={(id) => setDrawerId(id)} />
+        ) : apps.length === 0 ? (
           <EmptyBoard onAdd={() => openAdd()} />
         ) : view === 'kanban' ? (
           <KanbanBoard apps={filtered} onOpen={(a) => setDrawerId(a.id)} onEdit={openEdit} onAdd={(s) => openAdd(s)} />
-        ) : view === 'table' ? (
-          <TableView apps={filtered} onOpen={(a) => setDrawerId(a.id)} />
         ) : (
-          <AnalyticsDashboard apps={apps} />
+          <TableView apps={filtered} onOpen={(a) => setDrawerId(a.id)} />
         )}
       </main>
 

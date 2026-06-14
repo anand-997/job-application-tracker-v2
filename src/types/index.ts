@@ -21,6 +21,9 @@ export type WorkMode = 'remote' | 'onsite' | 'hybrid';
 export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP';
 export type SalaryType = 'annual' | 'monthly';
 
+export type MeetPlatform =
+  | 'google_meet' | 'zoom' | 'teams' | 'phone' | 'in_person' | 'other';
+
 export interface InterviewRound {
   id: string;
   roundNumber: number;
@@ -30,6 +33,62 @@ export interface InterviewRound {
   interviewer?: string;
   notes?: string;
   outcome?: 'passed' | 'failed' | 'pending' | 'cancelled';
+
+  // ── Calendar addon (all optional — backward compatible) ──
+  scheduledTime?: string;        // "14:30" — 24h HH:mm
+  durationMinutes?: number;      // 30 | 45 | 60 | 90 | 120 — default 60
+  timezone?: string;             // e.g. "Asia/Kolkata"
+  meetLink?: string;             // Google Meet / Zoom / Teams URL
+  meetPlatform?: MeetPlatform;
+  location?: string;             // office address — shown when onsite / in_person
+  interviewerEmail?: string;
+  preparationNotes?: string;
+  reminderMinutes?: number;      // browser notification before event: 15|30|60|1440
+}
+
+// Computed at render time from applications[] — NEVER stored in AppState/localStorage.
+export type CalendarEventType =
+  | 'interview_round'
+  | 'follow_up'
+  | 'offer_deadline'
+  | 'applied'
+  | 'offer_received'
+  | 'interview_scheduled';
+
+export interface CalendarEvent {
+  id: string;
+  type: CalendarEventType;
+
+  title: string;
+  subtitle?: string;
+  color: string;
+  colorLabel: string;
+
+  date: string;                  // "YYYY-MM-DD"
+  time?: string;                 // "14:30" — undefined = all-day
+  endTime?: string;
+  durationMinutes?: number;
+  isAllDay: boolean;
+
+  isToday: boolean;
+  isPast: boolean;
+  isOverdue: boolean;
+
+  applicationId: string;
+  roundId?: string;
+
+  company: string;
+  role: string;
+  source: SourceValue;
+
+  meetLink?: string;
+  meetPlatform?: MeetPlatform;
+  location?: string;
+  interviewer?: string;
+  preparationNotes?: string;
+  reminderMinutes?: number;
+
+  clickAction: 'open_round_modal' | 'open_job_drawer';
 }
 
 export interface StatusHistoryEntry {
@@ -165,7 +224,7 @@ export type SortKey =
   | 'newest' | 'oldest' | 'company' | 'priority'
   | 'daysSince' | 'salary';
 
-export type ViewMode = 'kanban' | 'table' | 'analytics';
+export type ViewMode = 'kanban' | 'table' | 'analytics' | 'calendar';
 
 export interface AppNotification {
   id: string;

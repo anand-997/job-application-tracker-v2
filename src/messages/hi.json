@@ -8,8 +8,77 @@
     "board": "बोर्ड",
     "table": "तालिका",
     "analytics": "विश्लेषण",
+    "calendar": "कैलेंडर",
     "settings": "सेटिंग्स",
     "addJob": "नौकरी जोड़ें"
+  },
+  "calendar": {
+    "title": "कैलेंडर",
+    "today": "आज",
+    "tomorrow": "कल",
+    "thisWeek": "इस सप्ताह",
+    "nextWeek": "अगले सप्ताह",
+    "later": "बाद में",
+    "month": "महीना",
+    "week": "सप्ताह",
+    "allDay": "पूरा दिन",
+    "upcoming": "आगामी",
+    "filters": "फ़िल्टर",
+    "showEventTypes": "इवेंट प्रकार दिखाएँ",
+    "filterBySource": "स्रोत से फ़िल्टर करें",
+    "showAllApps": "सभी आवेदन",
+    "activeOnly": "केवल सक्रिय",
+    "reset": "रीसेट",
+    "moreEvents": "+{n} और",
+    "meetLink": "मीट लिंक",
+    "copyLink": "लिंक कॉपी करें",
+    "linkCopied": "मीट लिंक कॉपी हुआ",
+    "editRound": "राउंड संपादित करें",
+    "openJob": "जॉब कार्ड खोलें",
+    "nothingScheduled": "आगे कुछ निर्धारित नहीं",
+    "showAll": "सभी दिखाएँ",
+    "overdue": "अतिदेय"
+  },
+  "round": {
+    "scheduledTime": "समय",
+    "duration": "अवधि",
+    "durationOptions": {
+      "30": "30 मिनट",
+      "45": "45 मिनट",
+      "60": "1 घंटा",
+      "90": "1.5 घंटे",
+      "120": "2 घंटे"
+    },
+    "interviewerEmail": "इंटरव्यूअर ईमेल",
+    "platform": "प्लेटफ़ॉर्म",
+    "platformOptions": {
+      "google_meet": "Google Meet",
+      "zoom": "Zoom",
+      "teams": "Microsoft Teams",
+      "phone": "फ़ोन",
+      "in_person": "व्यक्तिगत रूप से",
+      "other": "अन्य"
+    },
+    "meetLink": "मीट लिंक",
+    "location": "स्थान",
+    "reminder": "रिमाइंडर",
+    "reminderOptions": {
+      "none": "कोई रिमाइंडर नहीं",
+      "15": "15 मिनट पहले",
+      "30": "30 मिनट पहले",
+      "60": "1 घंटा पहले",
+      "1440": "1 दिन पहले"
+    },
+    "preparationNotes": "तैयारी नोट्स",
+    "preparationNotesPlaceholder": "इस राउंड के लिए क्या तैयार करें..."
+  },
+  "eventType": {
+    "interview_round": "साक्षात्कार",
+    "follow_up": "फ़ॉलो-अप",
+    "offer_deadline": "प्रस्ताव समय-सीमा",
+    "applied": "आवेदित",
+    "offer_received": "प्रस्ताव प्राप्त",
+    "interview_scheduled": "साक्षात्कार निर्धारित"
   },
   "header": {
     "searchPlaceholder": "कंपनी, भूमिका, स्किल, JD, रिज़्यूमे खोजें…",
