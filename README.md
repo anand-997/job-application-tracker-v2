@@ -28,6 +28,7 @@ JD + résumé text extraction, analytics, English + हिंदी, dark/light 
 | 🎉 | **Confetti** on → Accepted |
 | 🌐 | **English + हिंदी** i18n for every visible string · **Dark / Light** theme |
 | 💾 | **localStorage** persistence + **JSON import/export** + **CSV export** |
+| 🔗 | **Linked disk-backup file** — link a `.json` file on your device (File System Access API) and every change **auto-saves** to it; reconnects in one click on return. Chromium-only; Firefox/Safari fall back to manual Export/Import |
 | 🧪 | **One-click sample data** — explore a pre-filled board from onboarding, then **Clear sample data** in a single click |
 | ℹ️ | **Guest-mode footer** — explains local-only storage + quick **Export / Import JSON** to back up or move data between devices |
 | ⌨️ | **Keyboard shortcuts** (Ctrl/⌘+K, N, 1–9, Esc, ?) · WCAG-minded focus rings & ARIA labels |
