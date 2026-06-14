@@ -11,8 +11,14 @@ import { loadState, saveState, emptyState, clearState } from '@/lib/storage';
 import { detectGhosts } from '@/lib/ghost-detector';
 import { buildNotifications, ghostNotification, fireBrowserNotification } from '@/lib/notifications';
 import { buildSampleApplications } from '@/lib/sample-data';
-import { mergeApplications } from '@/lib/export-import';
+import { mergeApplications, buildExport, parseImport } from '@/lib/export-import';
+import {
+  fsaSupported, pickBackupFile, writeFile as fsWriteFile, readFile as fsReadFile,
+  verifyPermission, saveHandle, loadHandle, clearHandle, type BackupHandle,
+} from '@/lib/file-sync';
 import { uuid, nowISO } from '@/lib/utils';
+
+export type BackupStatus = 'unsupported' | 'unlinked' | 'needs-permission' | 'linked';
 
 interface AppContextValue {
   state: AppState;
@@ -45,6 +51,16 @@ interface AppContextValue {
   loadSample: () => void;
   clearAll: () => void;
 
+  // disk backup file (File System Access API; Chromium-only)
+  backupStatus: BackupStatus;
+  backupFileName: string | null;
+  lastSyncedAt: string | null;
+  linkBackupFile: () => Promise<boolean>;
+  reconnectBackup: () => Promise<boolean>;
+  syncBackupNow: () => Promise<boolean>;
+  importFromBackup: (mode?: 'replace' | 'merge') => Promise<number | null>;
+  unlinkBackup: () => void;
+
   // notifications
   markAllRead: () => void;
   dismissNotification: (id: string) => void;
@@ -57,6 +73,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const prevAcceptedRef = useRef<Set<string>>(new Set());
+
+  // Latest state for async file-write callbacks (avoids stale closures).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // ── Disk backup file (File System Access API) ──
+  const [backupHandle, setBackupHandle] = useState<BackupHandle | null>(null);
+  const [backupStatus, setBackupStatus] = useState<BackupStatus>('unlinked');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Hydrate from localStorage + run ghost detection (PRD §F9/§F10) ──
   useEffect(() => {
@@ -75,10 +101,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Persist on change ──
+  // ── Persist on change (localStorage stays the primary source of truth) ──
   useEffect(() => {
     if (hydrated) saveState(state);
   }, [state, hydrated]);
+
+  // ── Detect / restore a linked backup file on mount ──
+  useEffect(() => {
+    if (!fsaSupported()) {
+      setBackupStatus('unsupported');
+      return;
+    }
+    loadHandle()
+      .then((h) => {
+        // A handle is remembered but the browser needs a gesture to re-grant
+        // access, so we surface a one-click "Reconnect" rather than writing now.
+        if (h) {
+          setBackupHandle(h);
+          setBackupStatus('needs-permission');
+        }
+      })
+      .catch(() => { /* ignore — stays 'unlinked' */ });
+  }, []);
+
+  // ── Auto-sync to the linked file (debounced) whenever state changes ──
+  useEffect(() => {
+    if (!hydrated || backupStatus !== 'linked' || !backupHandle) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      fsWriteFile(backupHandle, buildExport(stateRef.current))
+        .then(() => setLastSyncedAt(nowISO()))
+        .catch(() => setBackupStatus('needs-permission')); // permission revoked / file moved
+    }, 800);
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
+  }, [state, hydrated, backupStatus, backupHandle]);
 
   // ── Apply theme + language to <html> ──
   useEffect(() => {
@@ -275,6 +331,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     prevAcceptedRef.current = new Set();
   }, []);
 
+  // ── Backup file ops ──
+  // Pick (or change) the linked file, write current data, and remember the handle.
+  const linkBackupFile = useCallback(async () => {
+    let handle: BackupHandle;
+    try {
+      handle = await pickBackupFile();
+    } catch {
+      return false; // user cancelled the picker
+    }
+    await fsWriteFile(handle, buildExport(stateRef.current));
+    await saveHandle(handle);
+    setBackupHandle(handle);
+    setBackupStatus('linked');
+    setLastSyncedAt(nowISO());
+    return true;
+  }, []);
+
+  // Re-grant access to a remembered handle (post-reload), then resume syncing.
+  const reconnectBackup = useCallback(async () => {
+    if (!backupHandle) return false;
+    if (!(await verifyPermission(backupHandle, true))) return false;
+    await fsWriteFile(backupHandle, buildExport(stateRef.current));
+    setBackupStatus('linked');
+    setLastSyncedAt(nowISO());
+    return true;
+  }, [backupHandle]);
+
+  const syncBackupNow = useCallback(async () => {
+    if (!backupHandle) return false;
+    if (!(await verifyPermission(backupHandle, true))) {
+      setBackupStatus('needs-permission');
+      return false;
+    }
+    await fsWriteFile(backupHandle, buildExport(stateRef.current));
+    setBackupStatus('linked');
+    setLastSyncedAt(nowISO());
+    return true;
+  }, [backupHandle]);
+
+  // Load the linked file back into the app (file is the authoritative backup → replace by default).
+  const importFromBackup = useCallback(async (mode: 'replace' | 'merge' = 'replace') => {
+    if (!backupHandle) return null;
+    if (!(await verifyPermission(backupHandle, false))) {
+      setBackupStatus('needs-permission');
+      return null;
+    }
+    const text = await fsReadFile(backupHandle);
+    const parsed = parseImport(text);
+    const count = importApplications(parsed.applications, mode, parsed.userPrefs);
+    setBackupStatus('linked');
+    return count;
+  }, [backupHandle, importApplications]);
+
+  const unlinkBackup = useCallback(() => {
+    void clearHandle();
+    setBackupHandle(null);
+    setLastSyncedAt(null);
+    setBackupStatus(fsaSupported() ? 'unlinked' : 'unsupported');
+  }, []);
+
   // ── Notifications ──
   const markAllRead = useCallback(() => {
     setReadIds(new Set(notifications.map((n) => n.id)));
@@ -304,6 +420,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addRound, updateRound, deleteRound,
     setPrefs, savePreset, deletePreset,
     importApplications, loadSample, clearAll,
+    backupStatus, backupFileName: backupHandle?.name ?? null, lastSyncedAt,
+    linkBackupFile, reconnectBackup, syncBackupNow, importFromBackup, unlinkBackup,
     markAllRead, dismissNotification,
   };
 
