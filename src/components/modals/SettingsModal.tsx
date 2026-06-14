@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Upload, Trash2, FileSpreadsheet, HardDriveDownload, RefreshCw, Link2Off, FileJson } from 'lucide-react';
+import { Download, Upload, Trash2, FileSpreadsheet, HardDriveDownload, RefreshCw, Link2Off, FolderOpen } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button, Field, Input, Select, Segmented } from '@/components/ui/primitives';
 import { useApp } from '@/context/AppProvider';
@@ -126,18 +126,32 @@ function BackupBlock() {
   const { t } = useT();
   const { toast } = useToast();
   const {
-    backupStatus, backupFileName, lastSyncedAt,
-    linkBackupFile, reconnectBackup, syncBackupNow, importFromBackup, unlinkBackup,
+    backupStatus, backupFolderName, backupFileName, lastSyncedAt,
+    linkDataFolder, resumeBackup, syncBackupNow, loadFromBackup, unlinkBackup,
   } = useApp();
   const [busy, setBusy] = useState(false);
 
-  // Wrap an async backup op with a busy guard + toast feedback.
-  const run = (fn: () => Promise<unknown>, ok: string) => async () => {
+  // Wrap a boolean/number-returning backup op with a busy guard + toast feedback.
+  const run = (fn: () => Promise<boolean | number | null>, ok: string) => async () => {
     setBusy(true);
     try {
       const res = await fn();
       if (res === false || res === null) return; // cancelled / permission denied — stay quiet
       toast({ message: typeof res === 'number' ? t('settings.backup.loaded', { n: res }) : ok, variant: 'success' });
+    } catch {
+      toast({ message: t('settings.backup.syncFailed'), variant: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Folder picker returns a {mode,count} result (or null when cancelled).
+  const chooseFolder = async () => {
+    setBusy(true);
+    try {
+      const res = await linkDataFolder();
+      if (!res) return;
+      toast({ message: res.mode === 'loaded' ? t('settings.backup.loaded', { n: res.count }) : t('onboarding.folderCreated'), variant: 'success' });
     } catch {
       toast({ message: t('settings.backup.syncFailed'), variant: 'error' });
     } finally {
@@ -152,7 +166,7 @@ function BackupBlock() {
   return (
     <div className="mt-3 rounded-xl border border-border surface-card p-3">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text-primary">
-        <HardDriveDownload className="h-4 w-4 text-accent" />{t('settings.backup.title')}
+        <HardDriveDownload className="h-4 w-4 text-accent" />{t('settings.backup.folderTitle')}
       </div>
 
       {backupStatus === 'unsupported' && (
@@ -162,8 +176,8 @@ function BackupBlock() {
       {backupStatus === 'unlinked' && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-text-secondary">{t('settings.backup.intro')}</p>
-          <Button variant="primary" disabled={busy} onClick={run(linkBackupFile, t('settings.backup.linked'))}>
-            <FileJson className="h-4 w-4" />{t('settings.backup.choose')}
+          <Button variant="primary" disabled={busy} onClick={chooseFolder}>
+            <FolderOpen className="h-4 w-4" />{t('settings.backup.chooseFolder')}
           </Button>
         </div>
       )}
@@ -171,8 +185,8 @@ function BackupBlock() {
       {backupStatus === 'needs-permission' && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-warning">{t('settings.backup.needsPermission')}</p>
-          <Button variant="primary" disabled={busy} onClick={run(reconnectBackup, t('settings.backup.reconnected'))}>
-            <RefreshCw className="h-4 w-4" />{t('settings.backup.reconnect')}
+          <Button variant="primary" disabled={busy} onClick={run(resumeBackup, t('settings.backup.reconnected'))}>
+            <RefreshCw className="h-4 w-4" />{t('settings.backup.resume')}
           </Button>
         </div>
       )}
@@ -181,7 +195,7 @@ function BackupBlock() {
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
             <span className="text-text-secondary">
-              {t('settings.backup.linkedAs')}: <span className="font-mono text-text-primary">{backupFileName}</span>
+              {t('settings.backup.linkedFolder')}: <span className="font-mono text-text-primary">{backupFolderName}/{backupFileName}</span>
             </span>
             <span className="text-text-muted">{t('settings.backup.lastSynced')}: {lastSynced}</span>
           </div>
@@ -189,11 +203,11 @@ function BackupBlock() {
             <Button variant="secondary" disabled={busy} onClick={run(syncBackupNow, t('settings.backup.synced'))}>
               <RefreshCw className="h-4 w-4" />{t('settings.backup.syncNow')}
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={run(() => importFromBackup('replace'), t('settings.backup.loaded', { n: 0 }))}>
+            <Button variant="secondary" disabled={busy} onClick={run(loadFromBackup, t('settings.backup.loaded', { n: 0 }))}>
               <Upload className="h-4 w-4" />{t('settings.backup.loadFromFile')}
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={run(linkBackupFile, t('settings.backup.linked'))}>
-              <FileJson className="h-4 w-4" />{t('settings.backup.changeFile')}
+            <Button variant="secondary" disabled={busy} onClick={chooseFolder}>
+              <FolderOpen className="h-4 w-4" />{t('settings.backup.changeFolder')}
             </Button>
             <Button variant="ghost" disabled={busy} onClick={() => { unlinkBackup(); toast({ message: t('settings.backup.unlinked'), variant: 'success' }); }}>
               <Link2Off className="h-4 w-4" />{t('settings.backup.unlink')}

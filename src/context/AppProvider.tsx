@@ -13,12 +13,15 @@ import { buildNotifications, ghostNotification, fireBrowserNotification } from '
 import { buildSampleApplications } from '@/lib/sample-data';
 import { mergeApplications, buildExport, parseImport } from '@/lib/export-import';
 import {
-  fsaSupported, pickBackupFile, writeFile as fsWriteFile, readFile as fsReadFile,
-  verifyPermission, saveHandle, loadHandle, clearHandle, type BackupHandle,
+  fsaSupported, pickDataFolder, getDataFileHandle, dataFileExists,
+  writeFile as fsWriteFile, readFile as fsReadFile, verifyPermission,
+  saveHandle, loadHandle, clearHandle, BACKUP_FILENAME,
+  type BackupDirHandle, type BackupFileHandle,
 } from '@/lib/file-sync';
 import { uuid, nowISO } from '@/lib/utils';
 
 export type BackupStatus = 'unsupported' | 'unlinked' | 'needs-permission' | 'linked';
+export interface LinkResult { mode: 'loaded' | 'created'; count: number; }
 
 interface AppContextValue {
   state: AppState;
@@ -51,14 +54,16 @@ interface AppContextValue {
   loadSample: () => void;
   clearAll: () => void;
 
-  // disk backup file (File System Access API; Chromium-only)
+  // linked data folder (File System Access API; Chromium-only)
+  backupSupported: boolean;
   backupStatus: BackupStatus;
-  backupFileName: string | null;
+  backupFolderName: string | null;
+  backupFileName: string;
   lastSyncedAt: string | null;
-  linkBackupFile: () => Promise<boolean>;
-  reconnectBackup: () => Promise<boolean>;
+  linkDataFolder: () => Promise<LinkResult | null>;
+  resumeBackup: () => Promise<boolean>;
   syncBackupNow: () => Promise<boolean>;
-  importFromBackup: (mode?: 'replace' | 'merge') => Promise<number | null>;
+  loadFromBackup: () => Promise<number | null>;
   unlinkBackup: () => void;
 
   // notifications
@@ -78,8 +83,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // ── Disk backup file (File System Access API) ──
-  const [backupHandle, setBackupHandle] = useState<BackupHandle | null>(null);
+  // ── Linked data folder (File System Access API) ──
+  const [dirHandle, setDirHandle] = useState<BackupDirHandle | null>(null);
+  const fileHandleRef = useRef<BackupFileHandle | null>(null); // cached file inside the folder
   const [backupStatus, setBackupStatus] = useState<BackupStatus>('unlinked');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,7 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (hydrated) saveState(state);
   }, [state, hydrated]);
 
-  // ── Detect / restore a linked backup file on mount ──
+  // ── Detect a remembered data folder on mount ──
   useEffect(() => {
     if (!fsaSupported()) {
       setBackupStatus('unsupported');
@@ -114,27 +120,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     loadHandle()
       .then((h) => {
-        // A handle is remembered but the browser needs a gesture to re-grant
-        // access, so we surface a one-click "Reconnect" rather than writing now.
+        // The folder is remembered but the browser needs a gesture to re-grant
+        // access, so we surface a one-click "Resume" rather than reading now.
+        // The board still renders instantly from localStorage in the meantime.
         if (h) {
-          setBackupHandle(h);
+          setDirHandle(h);
           setBackupStatus('needs-permission');
         }
       })
       .catch(() => { /* ignore — stays 'unlinked' */ });
   }, []);
 
-  // ── Auto-sync to the linked file (debounced) whenever state changes ──
+  // ── Auto-sync the folder's file (debounced) whenever state changes ──
   useEffect(() => {
-    if (!hydrated || backupStatus !== 'linked' || !backupHandle) return;
+    if (!hydrated || backupStatus !== 'linked' || !fileHandleRef.current) return;
     if (syncTimer.current) clearTimeout(syncTimer.current);
+    const fileHandle = fileHandleRef.current;
     syncTimer.current = setTimeout(() => {
-      fsWriteFile(backupHandle, buildExport(stateRef.current))
+      fsWriteFile(fileHandle, buildExport(stateRef.current))
         .then(() => setLastSyncedAt(nowISO()))
-        .catch(() => setBackupStatus('needs-permission')); // permission revoked / file moved
+        .catch(() => setBackupStatus('needs-permission')); // permission revoked / folder moved
     }, 800);
     return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
-  }, [state, hydrated, backupStatus, backupHandle]);
+  }, [state, hydrated, backupStatus]);
 
   // ── Apply theme + language to <html> ──
   useEffect(() => {
@@ -331,62 +339,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     prevAcceptedRef.current = new Set();
   }, []);
 
-  // ── Backup file ops ──
-  // Pick (or change) the linked file, write current data, and remember the handle.
-  const linkBackupFile = useCallback(async () => {
-    let handle: BackupHandle;
+  // ── Linked data folder ops ──
+  // Pick (or change) the data folder. Loads an existing jobtracker file if the
+  // folder has one, otherwise creates it from the current state.
+  const linkDataFolder = useCallback(async (): Promise<LinkResult | null> => {
+    let dir: BackupDirHandle;
     try {
-      handle = await pickBackupFile();
+      dir = await pickDataFolder();
     } catch {
-      return false; // user cancelled the picker
+      return null; // user cancelled the picker
     }
-    await fsWriteFile(handle, buildExport(stateRef.current));
-    await saveHandle(handle);
-    setBackupHandle(handle);
+    const existing = await dataFileExists(dir);
+    let result: LinkResult;
+    if (existing) {
+      const parsed = parseImport(await fsReadFile(existing));
+      const count = importApplications(parsed.applications, 'replace', parsed.userPrefs);
+      fileHandleRef.current = existing;
+      result = { mode: 'loaded', count };
+    } else {
+      const fresh = await getDataFileHandle(dir, true);
+      await fsWriteFile(fresh, buildExport(stateRef.current));
+      fileHandleRef.current = fresh;
+      result = { mode: 'created', count: stateRef.current.applications.length };
+    }
+    await saveHandle(dir);
+    setDirHandle(dir);
     setBackupStatus('linked');
     setLastSyncedAt(nowISO());
-    return true;
-  }, []);
+    return result;
+  }, [importApplications]);
 
-  // Re-grant access to a remembered handle (post-reload), then resume syncing.
-  const reconnectBackup = useCallback(async () => {
-    if (!backupHandle) return false;
-    if (!(await verifyPermission(backupHandle, true))) return false;
-    await fsWriteFile(backupHandle, buildExport(stateRef.current));
+  // One-click resume on return: re-grant folder permission, then load the file
+  // (authoritative on return) and resume auto-sync.
+  const resumeBackup = useCallback(async () => {
+    if (!dirHandle) return false;
+    if (!(await verifyPermission(dirHandle, true))) return false;
+    const existing = await dataFileExists(dirHandle);
+    if (existing) {
+      const parsed = parseImport(await fsReadFile(existing));
+      importApplications(parsed.applications, 'replace', parsed.userPrefs);
+      fileHandleRef.current = existing;
+    } else {
+      // Folder still accessible but file was removed — recreate from current state.
+      const fresh = await getDataFileHandle(dirHandle, true);
+      await fsWriteFile(fresh, buildExport(stateRef.current));
+      fileHandleRef.current = fresh;
+    }
     setBackupStatus('linked');
     setLastSyncedAt(nowISO());
     return true;
-  }, [backupHandle]);
+  }, [dirHandle, importApplications]);
 
   const syncBackupNow = useCallback(async () => {
-    if (!backupHandle) return false;
-    if (!(await verifyPermission(backupHandle, true))) {
+    if (!dirHandle) return false;
+    if (!(await verifyPermission(dirHandle, true))) {
       setBackupStatus('needs-permission');
       return false;
     }
-    await fsWriteFile(backupHandle, buildExport(stateRef.current));
+    const file = fileHandleRef.current ?? (await getDataFileHandle(dirHandle, true));
+    fileHandleRef.current = file;
+    await fsWriteFile(file, buildExport(stateRef.current));
     setBackupStatus('linked');
     setLastSyncedAt(nowISO());
     return true;
-  }, [backupHandle]);
+  }, [dirHandle]);
 
-  // Load the linked file back into the app (file is the authoritative backup → replace by default).
-  const importFromBackup = useCallback(async (mode: 'replace' | 'merge' = 'replace') => {
-    if (!backupHandle) return null;
-    if (!(await verifyPermission(backupHandle, false))) {
+  // Re-read the folder's file into the app (file is the authoritative backup).
+  const loadFromBackup = useCallback(async () => {
+    if (!dirHandle) return null;
+    if (!(await verifyPermission(dirHandle, false))) {
       setBackupStatus('needs-permission');
       return null;
     }
-    const text = await fsReadFile(backupHandle);
-    const parsed = parseImport(text);
-    const count = importApplications(parsed.applications, mode, parsed.userPrefs);
+    const existing = await dataFileExists(dirHandle);
+    if (!existing) return 0;
+    const parsed = parseImport(await fsReadFile(existing));
+    const count = importApplications(parsed.applications, 'replace', parsed.userPrefs);
+    fileHandleRef.current = existing;
     setBackupStatus('linked');
     return count;
-  }, [backupHandle, importApplications]);
+  }, [dirHandle, importApplications]);
 
   const unlinkBackup = useCallback(() => {
     void clearHandle();
-    setBackupHandle(null);
+    setDirHandle(null);
+    fileHandleRef.current = null;
     setLastSyncedAt(null);
     setBackupStatus(fsaSupported() ? 'unlinked' : 'unsupported');
   }, []);
@@ -420,8 +457,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addRound, updateRound, deleteRound,
     setPrefs, savePreset, deletePreset,
     importApplications, loadSample, clearAll,
-    backupStatus, backupFileName: backupHandle?.name ?? null, lastSyncedAt,
-    linkBackupFile, reconnectBackup, syncBackupNow, importFromBackup, unlinkBackup,
+    backupSupported: fsaSupported(),
+    backupStatus, backupFolderName: dirHandle?.name ?? null, backupFileName: BACKUP_FILENAME, lastSyncedAt,
+    linkDataFolder, resumeBackup, syncBackupNow, loadFromBackup, unlinkBackup,
     markAllRead, dismissNotification,
   };
 

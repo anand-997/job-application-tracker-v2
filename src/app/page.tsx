@@ -10,6 +10,7 @@ import { downloadJSON } from '@/lib/utils';
 import { buildExport } from '@/lib/export-import';
 import { useApp } from '@/context/AppProvider';
 import { useT } from '@/i18n/I18nProvider';
+import { useToast } from '@/context/ToastProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Providers } from './Providers';
 
@@ -45,8 +46,23 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { state, hydrated, deleteApplication, changeStatus, clearAll, setPrefs } = useApp();
+  const {
+    state, hydrated, deleteApplication, changeStatus, clearAll, setPrefs,
+    backupStatus, backupFolderName, resumeBackup, linkDataFolder,
+  } = useApp();
   const { t } = useT();
+  const { toast } = useToast();
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+
+  async function handleResume() {
+    const ok = await resumeBackup();
+    if (ok) toast({ message: t('settings.backup.reconnected'), variant: 'success' });
+    else {
+      // Folder/file gone or permission denied — offer to pick a new folder.
+      const res = await linkDataFolder();
+      if (res) toast({ message: res.mode === 'loaded' ? t('settings.backup.loaded', { n: res.count }) : t('onboarding.folderCreated'), variant: 'success' });
+    }
+  }
 
   const [view, setView] = useState<ViewMode>('kanban');
   const [search, setSearch] = useState('');
@@ -109,6 +125,17 @@ function AppShell() {
         <div className="flex items-center gap-2 border-b border-border bg-accent/5 px-4 py-1.5 text-xs text-text-secondary">
           <span>💾 {t('header.guestMode')}</span>
           <button onClick={() => setBannerHidden(true)} aria-label="Dismiss" className="ml-auto text-text-muted hover:text-text-primary"><X className="h-3.5 w-3.5" /></button>
+        </div>
+      )}
+
+      {/* Resume-folder banner — one-click re-grant of the linked data folder on return */}
+      {backupStatus === 'needs-permission' && !resumeDismissed && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-warning/10 px-4 py-2 text-xs text-text-secondary">
+          <span>🔗 {t('settings.backup.resumePrompt', { folder: backupFolderName ?? '' })}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="primary" onClick={handleResume}>{t('settings.backup.resume')}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setResumeDismissed(true)}>{t('settings.backup.notNow')}</Button>
+          </div>
         </div>
       )}
 
